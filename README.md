@@ -1,6 +1,6 @@
 ---
 
-title: Churn Prediction API
+title: churn-predict-api
 emoji: 🚀
 colorFrom: blue
 colorTo: purple
@@ -9,18 +9,11 @@ app_port: 7860
 pinned: false
 -------------
 
-# Churn Prediction FastAPI
+# Churn Prediction API
 
-A FastAPI-based machine learning API for customer churn prediction deployed using Docker on Hugging Face Spaces.
+FastAPI machine learning API for customer churn prediction.
 
 ## Endpoints
 
-* `/docs` → Swagger UI
-* `/predict_churn` → Prediction endpoint
-
-## Tech Stack
-
-* FastAPI
-* Scikit-learn
-* Docker
-* Hugging Face Spaces
+* `/docs`
+* `/predict_churn`
