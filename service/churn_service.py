@@ -1,61 +1,99 @@
-from urllib import request, response
-
 import pandas as pd
-
 import joblib
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
 
-from domain.domain import ChurnRequest, ChurnResponse
+from domain.domain import (
+    ChurnRequest,
+    ChurnResponse
+)
 
-class ChurnService():
+
+class ChurnService:
+
     def __init__(self):
-        self.path_to_model = 'artifacts/churn_model_lr.pkl'
-        self.path_scaler = 'artifacts/StandardScaler.pkl'
-        self.model = self.load_artifact (self.path_to_model)
-        self.scaler = self.load_artifact (self.path_scaler)
+        self.path_to_model = "artifacts/churn_model_lr.pkl"
+        self.path_scaler = "artifacts/StandardScaler.pkl"
+
+        self.model = self.load_artifact(self.path_to_model)
+        self.scaler = self.load_artifact(self.path_scaler)
 
     def load_artifact(self, path_to_artifact):
-        '''Load from the specified path.'''
-        with open(path_to_artifact, 'rb') as f:
+        """Load model/scaler artifact."""
+        with open(path_to_artifact, "rb") as f:
             artifact = joblib.load(f)
-        return artifact   
 
+        return artifact
+
+    # -----------------------------
+    # Single customer preprocessing
+    # -----------------------------
     def preprocess(self, request: ChurnRequest) -> pd.DataFrame:
-        data_dict = {
-            'frequency': request.frequency,
-            'monetary': request.monetary,
-            'avg_order_value': request.avg_order_value
-        }
 
-        data = pd.DataFrame([data_dict])
+        data = pd.DataFrame([{
+            "frequency": request.frequency,
+            "monetary": request.monetary,
+            "avg_order_value": request.avg_order_value
+        }])
 
         data_scaled = self.scaler.transform(data)
 
-        data = pd.DataFrame(
+        return pd.DataFrame(
             data_scaled,
             columns=data.columns
         )
 
-        return data
-    
-    def predict_churn(self, request: ChurnRequest) -> ChurnResponse:
-        # Convert the request to a DataFrame
-        data = self.preprocess(request)
-        
-        # Predict churn
-        churn_prediction = self.model.predict(data)[0]
-        
-        response = ChurnResponse(churn=int(churn_prediction))
-        return response
+    # -----------------------------
+    # Batch preprocessing
+    # -----------------------------
+    def preprocess_batch(
+        self,
+        requests: list[ChurnRequest]
+    ) -> pd.DataFrame:
 
-#test the service    
-#if __name__ == "__main__":
- #   service = ChurnService()
-  #  request = ChurnRequest(frequency=5, monetary=100, avg_order_value=20)
-   # response = service.predict_churn(request)
-    #print(response)
-    
-    
-    
-#run: "python -m service.churn_service" before running the above code, make sure to have the model and scaler artifacts in the specified paths.
+        data = pd.DataFrame([
+            {
+                "frequency": r.frequency,
+                "monetary": r.monetary,
+                "avg_order_value": r.avg_order_value
+            }
+            for r in requests
+        ])
+
+        data_scaled = self.scaler.transform(data)
+
+        return pd.DataFrame(
+            data_scaled,
+            columns=data.columns
+        )
+
+    # -----------------------------
+    # Single prediction
+    # -----------------------------
+    def predict_churn(
+        self,
+        request: ChurnRequest
+    ) -> ChurnResponse:
+
+        data = self.preprocess(request)
+
+        prediction = self.model.predict(data)[0]
+
+        return ChurnResponse(
+            churn=int(prediction)
+        )
+
+    # -----------------------------
+    # Batch prediction
+    # -----------------------------
+    def predict_churn_batch(
+        self,
+        requests: list[ChurnRequest]
+    ) -> list[ChurnResponse]:
+
+        data = self.preprocess_batch(requests)
+
+        predictions = self.model.predict(data)
+
+        return [
+            ChurnResponse(churn=int(pred))
+            for pred in predictions
+        ]
